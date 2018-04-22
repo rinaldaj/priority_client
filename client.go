@@ -35,6 +35,20 @@ func save(a []task){
 		fmt.Fprintln(file,string(jss))
 	}
 }
+func sendall(a []task,port string,ip string){
+	servs,errs := net.Dial("tcp",ip+port)
+	if (errs != nil){
+		return
+	}
+	defer servs.Close()
+	sendStr := "1"
+	for i:=0; i< len(a);i++{
+		jss,_ := json.Marshal(a[i])
+		sendStr = sendStr + string(jss)
+	}
+	sendStr = sendStr + "\n"
+	fmt.Fprint(servs,sendStr)
+}
 
 func eq(x task,y task) bool{
  return strings.EqualFold(x.User, y.User) && x.Importance == y.Importance && strings.EqualFold(x.Task, y.Task) && strings.EqualFold(x.Duedate,y.Duedate) && strings.EqualFold(x.Duetime,y.Duetime) && x.Completiontime == y.Completiontime
@@ -137,6 +151,7 @@ func main(){
 		tmpy,_= buffy.ReadString('\n')
 		curTask.Completiontime,_ = strconv.Atoi(tmpy[0:len(tmpy)-1])
 		curTask.User = username
+		jason = append(jason,curTask)
 		sje,_ := json.Marshal(curTask)
 		sendString := "1"+string(sje)+"\n"
 		fmt.Fprint(server2,sendString)
@@ -147,9 +162,18 @@ func main(){
 		fmt.Println("Which do you want to delete?")
 		delS,_ := bufio.NewReader(os.Stdin).ReadString('\n')
 		delIndex,_ := strconv.Atoi(delS[0:len(delS)-1])
-		sendStr:= "2" + strs[delIndex]+"\n"
+		tmpr := make([]task,0)
+		storss,_ := json.Marshal(jason[delIndex])
+		for j := 0;j<len(jason);j++{
+			if(j!=delIndex){
+				tmpr = append(tmpr,jason[j])
+			}
+		}
+		jason = tmpr
+		sendStr:= "2" + string(storss) +"\n"
 		fmt.Fprint(server2,sendStr)
 		}
 	}
 	save(jason)
+	sendall(jason,port,ip)
 }
