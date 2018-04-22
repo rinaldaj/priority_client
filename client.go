@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
+	"sort"
 )
 
 type task struct{
@@ -20,6 +21,11 @@ type task struct{
 	Completiontime  int
 	Priority	int
 }
+
+type byPriority []task
+func (a byPriority) Len() int	{return len(a)}
+func (a byPriority) Swap(i,j int) {a[i],a[j] = a[j],a[i]}
+func (a byPriority) Less(i,j int) bool {return a[i].Priority < a[j].Priority}
 
 
 func main(){
@@ -46,8 +52,10 @@ func main(){
 		port,_ = configReader.ReadString('\n')
 		username,_ = configReader.ReadString('\n')
 	}
-	port = ":" + port
-	server,errs := net.Dial("tcp","localhost:6666")
+	username = username[0:len(username)-1]
+	port = ":" + port[0:len(port)-1]
+	ip = ip[0:len(ip)-1]
+	server,errs := net.Dial("tcp",ip+port)
 	if (errs != nil){
 		fmt.Println(errs)
 		return
@@ -70,7 +78,15 @@ func main(){
 			tmp.Priority = int(durs)
 			jason = append(jason,tmp)
 		}
-		fmt.Println(jason)
+		sort.Sort(byPriority(jason))
+		trace := 0
+		fmt.Println("#:\tTask\tDate\tTime\tImportance\tHours")
+		for i :=0;i<len(jason);i++{
+			if(strings.EqualFold(jason[i].User,username)){
+				fmt.Printf("%d:\t%s\t%s\t%s\t%d\t%d\n",trace,jason[i].Task,jason[i].Duedate,jason[i].Duetime,jason[i].Importance,jason[i].Completiontime)
+				trace++
+			}
+		}
 	} else {
 		if (args[1] == "-a"){
 		fmt.Println("Adding assignment")
@@ -91,7 +107,7 @@ func main(){
 		fmt.Println("Completiontime")
 		tmpy,_= buffy.ReadString('\n')
 		curTask.Completiontime,_ = strconv.Atoi(tmpy[0:len(tmpy)-1])
-		curTask.User = username[0:len(username)-1]
+		curTask.User = username
 		sje,_ := json.Marshal(curTask)
 		sendString := "1"+string(sje)+"\n"
 		fmt.Fprint(server,sendString)
