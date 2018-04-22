@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 	"sort"
+	"io/ioutil"
 )
 
 type task struct{
@@ -27,6 +28,17 @@ func (a byPriority) Len() int	{return len(a)}
 func (a byPriority) Swap(i,j int) {a[i],a[j] = a[j],a[i]}
 func (a byPriority) Less(i,j int) bool {return a[i].Priority < a[j].Priority}
 
+func save(a []task){
+	file,_ := os.Create(".jsondump")
+	for i :=0;i<len(a);i++{
+		jss,_:= json.Marshal(a[i])
+		fmt.Fprintln(file,string(jss))
+	}
+}
+
+func eq(x task,y task) bool{
+ return strings.EqualFold(x.User, y.User) && x.Importance == y.Importance && strings.EqualFold(x.Task, y.Task) && strings.EqualFold(x.Duedate,y.Duedate) && strings.EqualFold(x.Duetime,y.Duetime) && x.Completiontime == y.Completiontime
+}
 
 func main(){
 	args := os.Args
@@ -34,6 +46,7 @@ func main(){
 	ip := ""
 	port := ":"
 	username := ""
+	jason := make([]task,0)
 	if (err != nil){
 		fmt.Println("Config file not found beggining intitial set up")
 		fmt.Println("Enter Server Ip")
@@ -61,11 +74,12 @@ func main(){
 		return
 	}
 	defer server.Close()
-	if (len(args) < 2){
 		fmt.Fprint(server,"3\n")
 		recp,_ := bufio.NewReader(server).ReadString('\n')
+		datos, _ :=ioutil.ReadFile(".jsondump")
+		trinkit := strings.Split(string(datos),"{")
 		strs := strings.Split(recp,"{")
-		var jason = make([]task,0)
+		strs = append(strs,trinkit...)
 		for i := 0;i<len(strs);i++{
 			tmp := task{}
 			strs[i] = "{" + strs[i]
@@ -76,9 +90,24 @@ func main(){
 			cur := time.Now()
 			durs := tms.Sub(cur.Add(time.Duration(tmp.Completiontime*int(time.Hour)*tmp.Importance)))
 			tmp.Priority = int(durs)
-			jason = append(jason,tmp)
+			dup := false
+			for k:=0;k<len(jason);k++ {
+				if(eq(jason[k],tmp)){
+					dup = true
+					break
+				}
+			}
+			if (!dup){
+				jason = append(jason,tmp)
+			}
 		}
 		sort.Sort(byPriority(jason))
+		server2,eirrs := net.Dial("tcp",ip+port)
+		if (eirrs != nil){
+			return
+		}
+		defer server2.Close()
+	if (len(args) < 2){
 		trace := 0
 		fmt.Println("#:\tTask\tDate\tTime\tImportance\tHours")
 		for i :=0;i<len(jason);i++{
@@ -110,21 +139,10 @@ func main(){
 		curTask.User = username
 		sje,_ := json.Marshal(curTask)
 		sendString := "1"+string(sje)+"\n"
-		fmt.Fprint(server,sendString)
+		fmt.Fprint(server2,sendString)
 		} else if (args[1] == "-d"){
-		fmt.Fprint(server,"3\n")
-		recp,_ := bufio.NewReader(server).ReadString('\n')
-		strs := strings.Split(recp,"{")
-		server2,eirrs := net.Dial("tcp","localhost:6666")
-		if (eirrs != nil){
-			return
-		}
-		defer server2.Close()
-		for i := 0;i<len(strs);i++{
-			tmp := task{}
-			strs[i] = "{" + strs[i]
-			json.Unmarshal([]byte(strs[i]),&tmp)
-			fmt.Printf("%d: %s\n",i,tmp.Task)
+		for i := 0;i<len(jason);i++{
+			fmt.Printf("%d: %s\n",i,jason[i].Task)
 		}
 		fmt.Println("Which do you want to delete?")
 		delS,_ := bufio.NewReader(os.Stdin).ReadString('\n')
@@ -133,4 +151,5 @@ func main(){
 		fmt.Fprint(server2,sendStr)
 		}
 	}
+	save(jason)
 }
