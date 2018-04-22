@@ -8,6 +8,7 @@ import (
 	"strings"
 	"encoding/json"
 	"strconv"
+	"time"
 )
 
 type task struct{
@@ -62,6 +63,11 @@ func main(){
 			strs[i] = "{" + strs[i]
 			json.Unmarshal([]byte(strs[i]),&tmp)
 			//Calculate Priority here
+			dues := tmp.Duedate +" "+ tmp.Duetime
+			tms,_ := time.Parse("1-2-06 3:04pm MST",dues)
+			cur := time.Now()
+			durs := tms.Sub(cur.Add(time.Duration(tmp.Completiontime*int(time.Hour)*tmp.Importance)))
+			tmp.Priority = int(durs)
 			jason = append(jason,tmp)
 		}
 		fmt.Println(jason)
@@ -81,7 +87,7 @@ func main(){
 		curTask.Duedate = curTask.Duedate[0:len(curTask.Duedate)-1]
 		fmt.Println("Duetime")
 		curTask.Duetime,_ = buffy.ReadString('\n')
-		curTask.Duetime = curTask.Duetime[0:len(curTask.Duetime)-1]
+		curTask.Duetime = curTask.Duetime[0:len(curTask.Duetime)-1] + " EDT"
 		fmt.Println("Completiontime")
 		tmpy,_= buffy.ReadString('\n')
 		curTask.Completiontime,_ = strconv.Atoi(tmpy[0:len(tmpy)-1])
