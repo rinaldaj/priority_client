@@ -83,16 +83,15 @@ func main(){
 	port = ":" + port[0:len(port)-1]
 	ip = ip[0:len(ip)-1]
 	server,errs := net.Dial("tcp",ip+port)
-	if (errs != nil){
-		fmt.Println(errs)
-		return
-	}
-	defer server.Close()
+	strs := make([]string,0)
+	if (errs == nil){
+		defer server.Close()
 		fmt.Fprint(server,"3\n")
 		recp,_ := bufio.NewReader(server).ReadString('\n')
+		strs = strings.Split(recp,"{")
+	}
 		datos, _ :=ioutil.ReadFile(".jsondump")
 		trinkit := strings.Split(string(datos),"{")
-		strs := strings.Split(recp,"{")
 		strs = append(strs,trinkit...)
 		for i := 0;i<len(strs);i++{
 			tmp := task{}
@@ -117,10 +116,9 @@ func main(){
 		}
 		sort.Sort(byPriority(jason))
 		server2,eirrs := net.Dial("tcp",ip+port)
-		if (eirrs != nil){
-			return
+		if (eirrs == nil){
+			defer server2.Close()
 		}
-		defer server2.Close()
 	if (len(args) < 2){
 		trace := 0
 		fmt.Println("#:\tTask\tDate\tTime\tImportance\tHours")
@@ -152,9 +150,11 @@ func main(){
 		curTask.Completiontime,_ = strconv.Atoi(tmpy[0:len(tmpy)-1])
 		curTask.User = username
 		jason = append(jason,curTask)
-		sje,_ := json.Marshal(curTask)
-		sendString := "1"+string(sje)+"\n"
-		fmt.Fprint(server2,sendString)
+		if(eirrs == nil){
+			sje,_ := json.Marshal(curTask)
+			sendString := "1"+string(sje)+"\n"
+			fmt.Fprint(server2,sendString)
+		}
 		} else if (args[1] == "-d"){
 		for i := 0;i<len(jason);i++{
 			fmt.Printf("%d: %s\n",i,jason[i].Task)
@@ -170,8 +170,10 @@ func main(){
 			}
 		}
 		jason = tmpr
-		sendStr:= "2" + string(storss) +"\n"
-		fmt.Fprint(server2,sendStr)
+		if(eirrs == nil){
+			sendStr:= "2" + string(storss) +"\n"
+			fmt.Fprint(server2,sendStr)
+		}
 		}
 	}
 	save(jason)
