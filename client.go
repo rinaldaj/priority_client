@@ -95,7 +95,7 @@ func main(){
 	strs := make([]string,0)
 	if (errs == nil){
 		defer server.Close()
-		fmt.Fprint(server,"3\n")
+		fmt.Fprint(server,"3"+username+"\n")
 		recp,_ := bufio.NewReader(server).ReadString('\n')
 		strs = strings.Split(recp,"{")
 	}
