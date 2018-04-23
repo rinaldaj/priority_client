@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"bufio"
 	"net"
 	"strings"
@@ -29,7 +30,11 @@ func (a byPriority) Swap(i,j int) {a[i],a[j] = a[j],a[i]}
 func (a byPriority) Less(i,j int) bool {return a[i].Priority < a[j].Priority}
 
 func save(a []task){
-	file,_ := os.Create(".jsondump")
+	usr,systouch := user.Current()
+	if(systouch != nil){
+		return
+	}
+	file,_ := os.Create(usr.HomeDir+"/.priority.json")
 	for i :=0;i<len(a);i++{
 		jss,_:= json.Marshal(a[i])
 		fmt.Fprintln(file,string(jss))
@@ -56,7 +61,11 @@ func eq(x task,y task) bool{
 
 func main(){
 	args := os.Args
-	config, err := os.Open(".config")
+	usr,systouch := user.Current()
+	if(systouch != nil){
+		return
+	}
+	config, err := os.Open(usr.HomeDir + "/.priority.conf")
 	ip := ""
 	port := ":"
 	username := ""
@@ -69,7 +78,7 @@ func main(){
 		port,_ = bufio.NewReader(os.Stdin).ReadString('\n')
 		fmt.Println("enter user name")
 		username,_ = bufio.NewReader(os.Stdin).ReadString('\n')
-		fiOut, _ := os.Create(".config")
+		fiOut, _ := os.Create(usr.HomeDir + "/.priority.conf")
 		fmt.Fprint(fiOut,ip)
 		fmt.Fprint(fiOut,port)
 		fmt.Fprint(fiOut,username)
@@ -90,7 +99,7 @@ func main(){
 		recp,_ := bufio.NewReader(server).ReadString('\n')
 		strs = strings.Split(recp,"{")
 	}
-		datos, _ :=ioutil.ReadFile(".jsondump")
+		datos, _ :=ioutil.ReadFile(usr.HomeDir + "/.priority.json")
 		trinkit := strings.Split(string(datos),"{")
 		strs = append(strs,trinkit...)
 		for i := 0;i<len(strs);i++{
